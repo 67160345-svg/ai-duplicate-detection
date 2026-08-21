@@ -1,13 +1,21 @@
-from typing import List
+from typing import Dict, List
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
 
+# นำเข้าฟังก์ชันจริงจากทั้ง 3 โมดูล
+from modules.feature_extractor import extract_all_features
+from modules.preprocessor import calculate_quality_scores, load_image_from_url_or_path
+from modules.scoring_engine import evaluate_baseline_decision
+
 app = FastAPI(
     title="Duplicate Image Detection Engine",
-    description="Phase 1: Baseline Single-Image Duplicate Detection API",
+    description="Phase 1: Real Baseline Pipeline Integration",
     version="1.0.0",
 )
+
+# In-Memory Database สำหรับเก็บข้อมูลภาพที่เคยตรวจในระบบ
+DB_REFERENCE_IMAGES: List[Dict] = []
 
 
 # ==========================================
@@ -62,7 +70,7 @@ class DetectionResponse(BaseModel):
 
 
 # ==========================================
-# 3. API Endpoint
+# 3. API Endpoint (ต่อ Pipeline จริง)
 # ==========================================
 @app.post("/api/v1/detect-duplicate", response_model=DetectionResponse)
 async def detect_duplicate_endpoint(payload: DetectionRequest):
@@ -77,27 +85,51 @@ async def detect_duplicate_endpoint(payload: DetectionRequest):
 
         target_image_url = image_urls[0]
 
-        # ข้อมูล Mock Data เพื่อทดสอบ API ในวันแรก
+        # Step 1: โหลดภาพและคำนวณคะแนนคุณภาพ (Tech 2)
+        img_rgb = load_image_from_url_or_path(target_image_url)
+        quality_dict = calculate_quality_scores(img_rgb)
+
+        # Step 2: สกัด pHash, YOLOv8 Mask, และ CLIP Embeddings (Tech 1)
+        features = extract_all_features(img_rgb)
+        new_phash = features["phash"]
+        new_fg_vec = features["fg_vector"]
+        new_bg_vec = features["bg_vector"]
+
+        # Step 3: เปรียบเทียบกับภาพในฐานข้อมูล และตัดสินผล (Scoring Engine)
+        decision, fg_sim, bg_sim, phash_sim_score, reason = evaluate_baseline_decision(
+            new_fg_vec=new_fg_vec,
+            new_bg_vec=new_bg_vec,
+            new_phash=new_phash,
+            db_records=DB_REFERENCE_IMAGES,
+        )
+
+        # Step 4: บันทึกข้อมูลภาพนี้ลง In-Memory DB เพื่อใช้เปรียบเทียบในรอบถัดไป
+        DB_REFERENCE_IMAGES.append({
+            "image_url": target_image_url,
+            "phash": new_phash,
+            "fg_vector": new_fg_vec,
+            "bg_vector": new_bg_vec,
+        })
+
+        # Step 5: คืนค่า Response ตาม Data Contract
         return DetectionResponse(
             status="success",
             listing_summary=ListingSummary(
                 listing_id=product_info.listing_id,
-                final_decision="UNIQUE",
-                confidence_score=0.95,
-                reason="Phase 1 Baseline passed - No duplicate found",
+                final_decision=decision,
+                confidence_score=fg_sim if decision == "DUPLICATE" else round(1.0 - fg_sim, 4),
+                reason=reason,
             ),
             image_logs=[
                 ImageLogResult(
                     image_url=target_image_url,
-                    scenario_type="NORMAL",
-                    similarity_score=0.15,
-                    phash_score=0.10,
-                    foreground_similarity=0.12,
-                    background_similarity=0.18,
-                    quality_scores=QualityScores(
-                        blur=0.05, brightness=0.48, contrast=0.58, noise=0.12
-                    ),
-                    embedding_vector=[0.012, -0.045, 0.891],
+                    scenario_type="EXACT_DUPLICATE" if decision == "DUPLICATE" else "NORMAL",
+                    similarity_score=fg_sim,
+                    phash_score=phash_sim_score,
+                    foreground_similarity=fg_sim,
+                    background_similarity=bg_sim,
+                    quality_scores=QualityScores(**quality_dict),
+                    embedding_vector=new_fg_vec[:10],  # ส่งตัวอย่าง 10 มิติแรกเพื่อความกระชับ
                 )
             ],
         )
