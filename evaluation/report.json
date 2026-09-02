@@ -1,0 +1,767 @@
+{
+  "training": {
+    "legacy": {
+      "thresholds": {
+        "exact_duplicate": 0.99,
+        "near_duplicate": 0.85,
+        "possible_duplicate": 0.85,
+        "review": 0.7
+      },
+      "records": 20000,
+      "accuracy": 0.8865,
+      "macro_f1": 0.9045,
+      "per_class": {
+        "DUPLICATE": {
+          "support": 6842,
+          "precision": 0.7509,
+          "recall": 1.0,
+          "f1": 0.8577
+        },
+        "INVALID_DATA": {
+          "support": 200,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "REVIEW": {
+          "support": 4523,
+          "precision": 1.0,
+          "recall": 0.4981,
+          "f1": 0.665
+        },
+        "SPAM": {
+          "support": 400,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "UNIQUE": {
+          "support": 8035,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "by_scenario": {
+        "AI_IMAGE": {
+          "count": 600,
+          "accuracy": 1.0
+        },
+        "BOUNDARY": {
+          "count": 200,
+          "accuracy": 0.82
+        },
+        "CROPPED": {
+          "count": 1000,
+          "accuracy": 0.359
+        },
+        "DIFFERENT_PRODUCT": {
+          "count": 1200,
+          "accuracy": 1.0
+        },
+        "EXACT_DUPLICATE": {
+          "count": 3000,
+          "accuracy": 1.0
+        },
+        "MIRRORED": {
+          "count": 400,
+          "accuracy": 0.335
+        },
+        "NEAR_DUPLICATE": {
+          "count": 2600,
+          "accuracy": 0.6412
+        },
+        "NEGATIVE": {
+          "count": 200,
+          "accuracy": 1.0
+        },
+        "NORMAL": {
+          "count": 5600,
+          "accuracy": 1.0
+        },
+        "RESIZED": {
+          "count": 1000,
+          "accuracy": 1.0
+        },
+        "ROTATED": {
+          "count": 1000,
+          "accuracy": 0.606
+        },
+        "SAME_PRODUCT": {
+          "count": 1200,
+          "accuracy": 1.0
+        },
+        "SCREENSHOT": {
+          "count": 600,
+          "accuracy": 1.0
+        },
+        "SPAM": {
+          "count": 400,
+          "accuracy": 1.0
+        },
+        "STOCK_IMAGE": {
+          "count": 400,
+          "accuracy": 1.0
+        },
+        "WATERMARK": {
+          "count": 600,
+          "accuracy": 1.0
+        }
+      },
+      "confusion_matrix": {
+        "DUPLICATE": {
+          "DUPLICATE": 6842
+        },
+        "INVALID_DATA": {
+          "INVALID_DATA": 200
+        },
+        "REVIEW": {
+          "DUPLICATE": 2270,
+          "REVIEW": 2253
+        },
+        "SPAM": {
+          "SPAM": 400
+        },
+        "UNIQUE": {
+          "UNIQUE": 8035
+        }
+      }
+    },
+    "phase1": {
+      "thresholds": {
+        "exact_duplicate": 0.99,
+        "near_duplicate": 0.95,
+        "possible_duplicate": 0.85,
+        "review": 0.7
+      },
+      "records": 20000,
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "per_class": {
+        "DUPLICATE": {
+          "support": 6842,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "INVALID_DATA": {
+          "support": 200,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "REVIEW": {
+          "support": 4523,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "SPAM": {
+          "support": 400,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "UNIQUE": {
+          "support": 8035,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "by_scenario": {
+        "AI_IMAGE": {
+          "count": 600,
+          "accuracy": 1.0
+        },
+        "BOUNDARY": {
+          "count": 200,
+          "accuracy": 1.0
+        },
+        "CROPPED": {
+          "count": 1000,
+          "accuracy": 1.0
+        },
+        "DIFFERENT_PRODUCT": {
+          "count": 1200,
+          "accuracy": 1.0
+        },
+        "EXACT_DUPLICATE": {
+          "count": 3000,
+          "accuracy": 1.0
+        },
+        "MIRRORED": {
+          "count": 400,
+          "accuracy": 1.0
+        },
+        "NEAR_DUPLICATE": {
+          "count": 2600,
+          "accuracy": 1.0
+        },
+        "NEGATIVE": {
+          "count": 200,
+          "accuracy": 1.0
+        },
+        "NORMAL": {
+          "count": 5600,
+          "accuracy": 1.0
+        },
+        "RESIZED": {
+          "count": 1000,
+          "accuracy": 1.0
+        },
+        "ROTATED": {
+          "count": 1000,
+          "accuracy": 1.0
+        },
+        "SAME_PRODUCT": {
+          "count": 1200,
+          "accuracy": 1.0
+        },
+        "SCREENSHOT": {
+          "count": 600,
+          "accuracy": 1.0
+        },
+        "SPAM": {
+          "count": 400,
+          "accuracy": 1.0
+        },
+        "STOCK_IMAGE": {
+          "count": 400,
+          "accuracy": 1.0
+        },
+        "WATERMARK": {
+          "count": 600,
+          "accuracy": 1.0
+        }
+      },
+      "confusion_matrix": {
+        "DUPLICATE": {
+          "DUPLICATE": 6842
+        },
+        "INVALID_DATA": {
+          "INVALID_DATA": 200
+        },
+        "REVIEW": {
+          "REVIEW": 4523
+        },
+        "SPAM": {
+          "SPAM": 400
+        },
+        "UNIQUE": {
+          "UNIQUE": 8035
+        }
+      }
+    }
+  },
+  "validation": {
+    "legacy": {
+      "thresholds": {
+        "exact_duplicate": 0.99,
+        "near_duplicate": 0.85,
+        "possible_duplicate": 0.85,
+        "review": 0.7
+      },
+      "records": 2000,
+      "accuracy": 0.892,
+      "macro_f1": 0.9084,
+      "per_class": {
+        "DUPLICATE": {
+          "support": 695,
+          "precision": 0.7629,
+          "recall": 1.0,
+          "f1": 0.8655
+        },
+        "INVALID_DATA": {
+          "support": 20,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "REVIEW": {
+          "support": 442,
+          "precision": 1.0,
+          "recall": 0.5113,
+          "f1": 0.6766
+        },
+        "SPAM": {
+          "support": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "UNIQUE": {
+          "support": 803,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "by_scenario": {
+        "AI_IMAGE": {
+          "count": 60,
+          "accuracy": 1.0
+        },
+        "BOUNDARY": {
+          "count": 20,
+          "accuracy": 0.8
+        },
+        "CROPPED": {
+          "count": 100,
+          "accuracy": 0.39
+        },
+        "DIFFERENT_PRODUCT": {
+          "count": 120,
+          "accuracy": 1.0
+        },
+        "EXACT_DUPLICATE": {
+          "count": 300,
+          "accuracy": 1.0
+        },
+        "MIRRORED": {
+          "count": 40,
+          "accuracy": 0.275
+        },
+        "NEAR_DUPLICATE": {
+          "count": 260,
+          "accuracy": 0.6769
+        },
+        "NEGATIVE": {
+          "count": 20,
+          "accuracy": 1.0
+        },
+        "NORMAL": {
+          "count": 560,
+          "accuracy": 1.0
+        },
+        "RESIZED": {
+          "count": 100,
+          "accuracy": 1.0
+        },
+        "ROTATED": {
+          "count": 100,
+          "accuracy": 0.62
+        },
+        "SAME_PRODUCT": {
+          "count": 120,
+          "accuracy": 1.0
+        },
+        "SCREENSHOT": {
+          "count": 60,
+          "accuracy": 1.0
+        },
+        "SPAM": {
+          "count": 40,
+          "accuracy": 1.0
+        },
+        "STOCK_IMAGE": {
+          "count": 40,
+          "accuracy": 1.0
+        },
+        "WATERMARK": {
+          "count": 60,
+          "accuracy": 1.0
+        }
+      },
+      "confusion_matrix": {
+        "DUPLICATE": {
+          "DUPLICATE": 695
+        },
+        "INVALID_DATA": {
+          "INVALID_DATA": 20
+        },
+        "REVIEW": {
+          "REVIEW": 226,
+          "DUPLICATE": 216
+        },
+        "SPAM": {
+          "SPAM": 40
+        },
+        "UNIQUE": {
+          "UNIQUE": 803
+        }
+      }
+    },
+    "phase1": {
+      "thresholds": {
+        "exact_duplicate": 0.99,
+        "near_duplicate": 0.95,
+        "possible_duplicate": 0.85,
+        "review": 0.7
+      },
+      "records": 2000,
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "per_class": {
+        "DUPLICATE": {
+          "support": 695,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "INVALID_DATA": {
+          "support": 20,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "REVIEW": {
+          "support": 442,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "SPAM": {
+          "support": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "UNIQUE": {
+          "support": 803,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "by_scenario": {
+        "AI_IMAGE": {
+          "count": 60,
+          "accuracy": 1.0
+        },
+        "BOUNDARY": {
+          "count": 20,
+          "accuracy": 1.0
+        },
+        "CROPPED": {
+          "count": 100,
+          "accuracy": 1.0
+        },
+        "DIFFERENT_PRODUCT": {
+          "count": 120,
+          "accuracy": 1.0
+        },
+        "EXACT_DUPLICATE": {
+          "count": 300,
+          "accuracy": 1.0
+        },
+        "MIRRORED": {
+          "count": 40,
+          "accuracy": 1.0
+        },
+        "NEAR_DUPLICATE": {
+          "count": 260,
+          "accuracy": 1.0
+        },
+        "NEGATIVE": {
+          "count": 20,
+          "accuracy": 1.0
+        },
+        "NORMAL": {
+          "count": 560,
+          "accuracy": 1.0
+        },
+        "RESIZED": {
+          "count": 100,
+          "accuracy": 1.0
+        },
+        "ROTATED": {
+          "count": 100,
+          "accuracy": 1.0
+        },
+        "SAME_PRODUCT": {
+          "count": 120,
+          "accuracy": 1.0
+        },
+        "SCREENSHOT": {
+          "count": 60,
+          "accuracy": 1.0
+        },
+        "SPAM": {
+          "count": 40,
+          "accuracy": 1.0
+        },
+        "STOCK_IMAGE": {
+          "count": 40,
+          "accuracy": 1.0
+        },
+        "WATERMARK": {
+          "count": 60,
+          "accuracy": 1.0
+        }
+      },
+      "confusion_matrix": {
+        "DUPLICATE": {
+          "DUPLICATE": 695
+        },
+        "INVALID_DATA": {
+          "INVALID_DATA": 20
+        },
+        "REVIEW": {
+          "REVIEW": 442
+        },
+        "SPAM": {
+          "SPAM": 40
+        },
+        "UNIQUE": {
+          "UNIQUE": 803
+        }
+      }
+    }
+  },
+  "testing": {
+    "legacy": {
+      "thresholds": {
+        "exact_duplicate": 0.99,
+        "near_duplicate": 0.85,
+        "possible_duplicate": 0.85,
+        "review": 0.7
+      },
+      "records": 2000,
+      "accuracy": 0.889,
+      "macro_f1": 0.9063,
+      "per_class": {
+        "DUPLICATE": {
+          "support": 688,
+          "precision": 0.756,
+          "recall": 1.0,
+          "f1": 0.8611
+        },
+        "INVALID_DATA": {
+          "support": 20,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "REVIEW": {
+          "support": 448,
+          "precision": 1.0,
+          "recall": 0.5045,
+          "f1": 0.6706
+        },
+        "SPAM": {
+          "support": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "UNIQUE": {
+          "support": 804,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "by_scenario": {
+        "AI_IMAGE": {
+          "count": 60,
+          "accuracy": 1.0
+        },
+        "BOUNDARY": {
+          "count": 20,
+          "accuracy": 0.85
+        },
+        "CROPPED": {
+          "count": 100,
+          "accuracy": 0.45
+        },
+        "DIFFERENT_PRODUCT": {
+          "count": 120,
+          "accuracy": 1.0
+        },
+        "EXACT_DUPLICATE": {
+          "count": 300,
+          "accuracy": 1.0
+        },
+        "MIRRORED": {
+          "count": 40,
+          "accuracy": 0.25
+        },
+        "NEAR_DUPLICATE": {
+          "count": 260,
+          "accuracy": 0.6346
+        },
+        "NEGATIVE": {
+          "count": 20,
+          "accuracy": 1.0
+        },
+        "NORMAL": {
+          "count": 560,
+          "accuracy": 1.0
+        },
+        "RESIZED": {
+          "count": 100,
+          "accuracy": 1.0
+        },
+        "ROTATED": {
+          "count": 100,
+          "accuracy": 0.61
+        },
+        "SAME_PRODUCT": {
+          "count": 120,
+          "accuracy": 1.0
+        },
+        "SCREENSHOT": {
+          "count": 60,
+          "accuracy": 1.0
+        },
+        "SPAM": {
+          "count": 40,
+          "accuracy": 1.0
+        },
+        "STOCK_IMAGE": {
+          "count": 40,
+          "accuracy": 1.0
+        },
+        "WATERMARK": {
+          "count": 60,
+          "accuracy": 1.0
+        }
+      },
+      "confusion_matrix": {
+        "DUPLICATE": {
+          "DUPLICATE": 688
+        },
+        "INVALID_DATA": {
+          "INVALID_DATA": 20
+        },
+        "REVIEW": {
+          "DUPLICATE": 222,
+          "REVIEW": 226
+        },
+        "SPAM": {
+          "SPAM": 40
+        },
+        "UNIQUE": {
+          "UNIQUE": 804
+        }
+      }
+    },
+    "phase1": {
+      "thresholds": {
+        "exact_duplicate": 0.99,
+        "near_duplicate": 0.95,
+        "possible_duplicate": 0.85,
+        "review": 0.7
+      },
+      "records": 2000,
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "per_class": {
+        "DUPLICATE": {
+          "support": 688,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "INVALID_DATA": {
+          "support": 20,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "REVIEW": {
+          "support": 448,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "SPAM": {
+          "support": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "UNIQUE": {
+          "support": 804,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "by_scenario": {
+        "AI_IMAGE": {
+          "count": 60,
+          "accuracy": 1.0
+        },
+        "BOUNDARY": {
+          "count": 20,
+          "accuracy": 1.0
+        },
+        "CROPPED": {
+          "count": 100,
+          "accuracy": 1.0
+        },
+        "DIFFERENT_PRODUCT": {
+          "count": 120,
+          "accuracy": 1.0
+        },
+        "EXACT_DUPLICATE": {
+          "count": 300,
+          "accuracy": 1.0
+        },
+        "MIRRORED": {
+          "count": 40,
+          "accuracy": 1.0
+        },
+        "NEAR_DUPLICATE": {
+          "count": 260,
+          "accuracy": 1.0
+        },
+        "NEGATIVE": {
+          "count": 20,
+          "accuracy": 1.0
+        },
+        "NORMAL": {
+          "count": 560,
+          "accuracy": 1.0
+        },
+        "RESIZED": {
+          "count": 100,
+          "accuracy": 1.0
+        },
+        "ROTATED": {
+          "count": 100,
+          "accuracy": 1.0
+        },
+        "SAME_PRODUCT": {
+          "count": 120,
+          "accuracy": 1.0
+        },
+        "SCREENSHOT": {
+          "count": 60,
+          "accuracy": 1.0
+        },
+        "SPAM": {
+          "count": 40,
+          "accuracy": 1.0
+        },
+        "STOCK_IMAGE": {
+          "count": 40,
+          "accuracy": 1.0
+        },
+        "WATERMARK": {
+          "count": 60,
+          "accuracy": 1.0
+        }
+      },
+      "confusion_matrix": {
+        "DUPLICATE": {
+          "DUPLICATE": 688
+        },
+        "INVALID_DATA": {
+          "INVALID_DATA": 20
+        },
+        "REVIEW": {
+          "REVIEW": 448
+        },
+        "SPAM": {
+          "SPAM": 40
+        },
+        "UNIQUE": {
+          "UNIQUE": 804
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+pydantic
+numpy
+opencv-python
+pillow
+imagehash
+torch
+ultralytics
+open_clip_torch
+scipy
+openpyxl
+supabase
+python-dotenv
+python-multipart
