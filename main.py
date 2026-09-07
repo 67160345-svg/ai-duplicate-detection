@@ -9,8 +9,12 @@ import uvicorn
 
 # นำเข้าโมดูล AI ภายในระบบ
 from modules.feature_extractor import extract_all_features
-from modules.preprocessor import calculate_quality_scores, load_image_from_bytes
-from modules.scoring_engine import evaluate_baseline_decision
+from modules.preprocessor import calculate_quality_scores, check_image_quality, load_image_from_bytes
+from modules.scoring_engine import (
+    DEFAULT_SIMILARITY_THRESHOLDS,
+    evaluate_baseline_decision,
+)
+from modules.detectors import run_detectors
 from modules.reference_store import ReferenceImageStore, InMemoryReferenceStore
 try:
     from dotenv import load_dotenv
@@ -24,7 +28,7 @@ logger = logging.getLogger("ttt_ai_engine")
 
 app = FastAPI(
     title="TTT AI Duplicate Detection Engine",
-    description="Beta Version: SE Gateway Integration (In-Memory Reference)",
+    description="Prototype: SE Gateway Integration (In-Memory Reference)",
     version="1.0.0-beta",
 )
 
@@ -145,9 +149,57 @@ async def detect_duplicate_product_gateway(
         # จะบล็อก event loop ทำให้ request อื่นค้างหมดระหว่างประมวลผลภาพนี้
         img_rgb = await run_in_threadpool(load_image_from_bytes, contents)
 
+        quality_scores = await run_in_threadpool(calculate_quality_scores, img_rgb)
+        quality_ok, quality_issues = await run_in_threadpool(check_image_quality, img_rgb)
+        if not quality_ok:
+            reason = "ภาพไม่พร้อมสำหรับ detection: " + "; ".join(quality_issues)
+            return GatewayDetectionResponse(
+                status="success",
+                is_repetition=False,
+                repetition_rate=0.0,
+                matched_product=None,
+                analysis=AnalysisDetail(
+                    decision="REVIEW",
+                    reason=reason,
+                    similarity_breakdown=SimilarityBreakdown(
+                        repetition_similarity=0.0,
+                        foreground_similarity=0.0,
+                        background_similarity=0.0,
+                        phash_similarity=0.0,
+                    ),
+                    quality_scores=quality_scores,
+                ),
+            )
+
+        # Phase 3 detectors: conservative, soft review flags.
+        detector_results = await run_in_threadpool(run_detectors, img_rgb)
+        detector_reasons = [
+            f"{name}: {info['reason']}"
+            for name, info in detector_results.items()
+            if info.get("flagged")
+        ]
+        if detector_reasons:
+            reason = "; ".join(detector_reasons)
+            return GatewayDetectionResponse(
+                status="success",
+                is_repetition=False,
+                repetition_rate=0.0,
+                matched_product=None,
+                analysis=AnalysisDetail(
+                    decision="REVIEW",
+                    reason=f"ภาพมีสัญญาณไม่เหมาะสำหรับการเทียบซ้ำ: {reason}",
+                    similarity_breakdown=SimilarityBreakdown(
+                        repetition_similarity=0.0,
+                        foreground_similarity=0.0,
+                        background_similarity=0.0,
+                        phash_similarity=0.0,
+                    ),
+                    quality_scores=quality_scores,
+                ),
+            )
+
         # Step 2: สกัด Features (YOLOv8-Seg + OpenCLIP + pHash)
         features = await run_in_threadpool(extract_all_features, img_rgb)
-        quality_scores = await run_in_threadpool(calculate_quality_scores, img_rgb)
         new_phash = features["phash"]
         new_fg_vec = features["fg_vector"]
         new_bg_vec = features["bg_vector"]
@@ -167,8 +219,9 @@ async def detect_duplicate_product_gateway(
                 new_bg_vec=new_bg_vec,
                 new_phash=new_phash,
                 db_records=candidates,
-                fg_threshold=0.85,
+                fg_threshold=DEFAULT_SIMILARITY_THRESHOLDS["near_duplicate"],
                 phash_distance_threshold=5,
+                review_threshold=DEFAULT_SIMILARITY_THRESHOLDS["review"],
             )
         )
 

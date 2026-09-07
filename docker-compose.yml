@@ -1,0 +1,20 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: alpha-duplicate-detection
+    env_file:
+      - .env
+    environment:
+      REFERENCE_STORE: ${REFERENCE_STORE:-memory}
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:-product-images}
+      YOLO_SEG_CONFIDENCE: ${YOLO_SEG_CONFIDENCE:-0.25}
+      YOLO_SEG_IOU: ${YOLO_SEG_IOU:-0.7}
+      YOLO_SEG_MASK_CONFIDENCE: ${YOLO_SEG_MASK_CONFIDENCE:-0.35}
+      YOLO_SEG_MAX_OBJECTS: ${YOLO_SEG_MAX_OBJECTS:-3}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped

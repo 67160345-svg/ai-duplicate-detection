@@ -26,7 +26,10 @@ The scoring layer supports:
 - `SPAM`
 - `INVALID_DATA`
 
-The current implementation is a first YOLO version. It is not yet validated against a real image dataset.
+The current implementation is a conservative prototype. It is not yet calibrated against a real labeled image dataset.
+
+The model scope is intentionally limited to phones/tablets, apparel/fashion, cameras, basic tools,
+beauty/health products, and computer/IT accessories. Unsupported or uncertain detections return `REVIEW`.
 
 ## Requirements
 
@@ -67,9 +70,14 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 SUPABASE_STORAGE_BUCKET=product-images
 YOLO_SEG_CONFIDENCE=0.25
 YOLO_SEG_IOU=0.7
+YOLO_SEG_MASK_CONFIDENCE=0.35
+YOLO_SEG_MAX_OBJECTS=3
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` is server-only. Never expose it in frontend code, logs, screenshots, or Git. If a key has been shared publicly, rotate it in Supabase before use.
+
+`YOLO_SEG_MASK_CONFIDENCE` controls the minimum confidence for a selected segmentation mask.
+`YOLO_SEG_MAX_OBJECTS` limits the number of product masks combined into the foreground.
 
 For local development without Supabase:
 
@@ -138,6 +146,10 @@ Allowed formats are JPEG, PNG, and WebP. Maximum upload size is 10 MB.
 
 The evaluation harness uses precomputed numeric signals from the Excel/CSV dataset. It does not run YOLO or OpenCLIP inference.
 
+For localhost FastAPI performance testing, use [QA_VALIDATION_TESTING_DATASET_REQUIREMENTS.md](QA_VALIDATION_TESTING_DATASET_REQUIREMENTS.md). It defines the workload images, concurrency scenarios, latency/throughput metrics, resource measurements, and QA result format. This test does not measure model accuracy.
+
+After performance passes, use [PERFORMANCE_AND_CALIBRATION_GUIDE.md](PERFORMANCE_AND_CALIBRATION_GUIDE.md) and [VALIDATION_CALIBRATION_DATASET_REQUIREMENTS.md](VALIDATION_CALIBRATION_DATASET_REQUIREMENTS.md) for external access, Ground Truth validation, reporting, and model calibration.
+
 ```powershell
 .venv\Scripts\python.exe evaluation\evaluate_dataset.py path\to\dataset.xlsx --output evaluation\report.json
 ```
@@ -163,8 +175,9 @@ select * from duplicate_analysis_results order by created_at desc limit 5;
 
 - `InMemoryReferenceStore` loses data when the process restarts.
 - YOLOv8n-Seg is COCO-pretrained and may not detect all e-commerce products.
-- Watermark, screenshot, AI-image, and stock-image detectors are not implemented in the live image pipeline.
-- Thresholds are baseline values and require validation with real labeled images.
+- Screenshot, watermark, and AI-artifact detectors are connected to the live pipeline as conservative heuristic gates; a flag returns `REVIEW`.
+- Stock image detection is intentionally out of scope because there is no stock reference database.
+- Thresholds are initial prototype values and require validation with real labeled images.
 - The current API still uses the uploaded filename as the temporary product identifier.
 - Authentication and integration with `public.ocr` are not implemented.
 
@@ -231,9 +244,13 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 SUPABASE_STORAGE_BUCKET=product-images
 YOLO_SEG_CONFIDENCE=0.25
 YOLO_SEG_IOU=0.7
+YOLO_SEG_MASK_CONFIDENCE=0.35
+YOLO_SEG_MAX_OBJECTS=3
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` ใช้เฉพาะฝั่ง backend ห้ามใส่ใน frontend, log, screenshot หรือ commit เข้า Git หาก key ถูกเปิดเผยแล้ว ให้ rotate key ใน Supabase ก่อนใช้งาน
+
+`YOLO_SEG_MASK_CONFIDENCE` กำหนด confidence ขั้นต่ำของ mask ที่จะนำมาใช้ และ `YOLO_SEG_MAX_OBJECTS` จำกัดจำนวน mask สินค้าที่นำมารวมเป็น foreground
 
 ถ้าต้องการทดสอบโดยไม่เชื่อม Supabase:
 
@@ -276,6 +293,10 @@ uploads/<uuid>.<extension>
 
 evaluation harness ใช้ค่า feature ที่คำนวณไว้แล้วจาก dataset จึงไม่ได้รัน YOLO หรือ OpenCLIP จริง:
 
+สำหรับการทดสอบ performance ของ FastAPI บน localhost ให้ใช้ [QA_VALIDATION_TESTING_DATASET_REQUIREMENTS.md](QA_VALIDATION_TESTING_DATASET_REQUIREMENTS.md) ซึ่งกำหนด workload ภาพ, concurrency, latency, throughput, resource usage และ format ผลทดสอบ โดยรอบนี้ไม่วัด accuracy ของโมเดล
+
+เมื่อ performance ผ่านแล้ว ให้ใช้ [PERFORMANCE_AND_CALIBRATION_GUIDE.md](PERFORMANCE_AND_CALIBRATION_GUIDE.md) และ [VALIDATION_CALIBRATION_DATASET_REQUIREMENTS.md](VALIDATION_CALIBRATION_DATASET_REQUIREMENTS.md) สำหรับการเปิดให้ QA ภายนอกเข้าทดสอบ, การส่ง report และการ calibrate โมเดล
+
 ```powershell
 .venv\Scripts\python.exe evaluation\evaluate_dataset.py path\to\dataset.xlsx --output evaluation\report.json
 ```
@@ -297,11 +318,30 @@ select * from product_reference_images order by created_at desc limit 5;
 select * from duplicate_analysis_results order by created_at desc limit 5;
 ```
 
+### ขอบเขตโมเดลต้นแบบ
+
+ระบบโฟกัสเฉพาะสินค้า:
+
+- มือถือและแท็บเล็ต
+- เสื้อผ้าและแฟชั่น
+- กล้อง
+- อุปกรณ์เครื่องมือพื้นฐาน
+- ความงามและสุขภาพ
+- คอมพิวเตอร์และ IT เช่น laptop, monitor, keyboard, mouse, router, speaker และ headphones
+
+YOLOv8n-Seg จะคัด mask ตาม class, confidence และขนาดวัตถุ แล้วทำความสะอาด mask ก่อนแยก foreground/background
+ด้วย morphological filtering หากไม่พบ mask ที่น่าเชื่อถือ ระบบจะคืน `REVIEW`
+
+Screenshot, watermark และ AI-artifact detector ทำงานใน live pipeline แบบ conservative เช่นกัน โดยไม่ตัดสิน `DUPLICATE`
+จาก detector เพียงอย่างเดียว
+
 ### ข้อจำกัดปัจจุบัน
 
 - โหมด `InMemoryReferenceStore` ข้อมูลจะหายเมื่อ restart server
 - YOLOv8n-Seg เป็นโมเดลที่ train จาก COCO จึงอาจตรวจจับสินค้าบางประเภทไม่ได้
-- ระบบ live ยังไม่มี detector เฉพาะสำหรับ watermark, screenshot, AI-generated และ stock image
-- threshold ปัจจุบันเป็นค่า baseline ควร validate กับภาพจริงที่มี label
+- detector ปัจจุบันเป็น heuristic ยังไม่ใช่โมเดลเฉพาะทาง และต้อง validate false positive กับภาพจริง
+- ยังไม่ทำ Stock image detection เพราะไม่มีฐานข้อมูลภาพ stock อ้างอิง
+- threshold ปัจจุบันเป็นค่า prototype: duplicate `>= 0.95`, review `>= 0.70`
+- ยังไม่มีชุดภาพจริงพร้อม Ground Truth สำหรับวัด pipeline ตั้งแต่ YOLO ถึง decision
 - API ยังใช้ชื่อไฟล์เป็น product identifier ชั่วคราว
 - ยังไม่มี authentication และการเชื่อมต่อกับ `public.ocr`
