@@ -31,6 +31,58 @@ The current implementation is a conservative prototype. It is not yet calibrated
 The model scope is intentionally limited to phones/tablets, apparel/fashion, cameras, basic tools,
 beauty/health products, and computer/IT accessories. Unsupported or uncertain detections return `REVIEW`.
 
+## Current Prototype Status
+
+Estimated completion for the **model prototype**: **about 75%**.
+
+This percentage means the main inference and decision flow is implemented. It does not mean 75% model accuracy.
+
+| Capability | Status | Notes |
+|---|---|---|
+| Image quality gate | Ready | Rejects clearly blurry, dark, low-contrast, or low-resolution images as `REVIEW` |
+| YOLOv8n-Seg foreground/background | Ready for MVP | Selects supported product-like masks, cleans masks, and falls back to `REVIEW` when uncertain |
+| OpenCLIP embedding | Ready for MVP | Generates normalized foreground/background vectors |
+| pHash matching | Ready for MVP | Supports exact/near visual similarity checks |
+| Decision scoring | Ready for MVP | `DUPLICATE`, `REVIEW`, `UNIQUE`, `INVALID_DATA` paths are wired |
+| Screenshot/watermark/AI-artifact gates | Basic | Conservative heuristic detectors; require real-image calibration |
+| Real-image model validation | Pending | No labeled image results yet |
+| Production identity/auth/persistence | Pending | Requires integration contracts and production infrastructure |
+
+### Accuracy Currently Available
+
+The current evaluation report measures **decision logic from precomputed numeric signals**, not YOLO/OpenCLIP inference from real images:
+
+| Split | Records | Accuracy | Macro F1 |
+|---|---:|---:|---:|
+| Training | 20,000 | 100% | 100% |
+| Validation | 2,000 | 100% | 100% |
+| Testing | 2,000 | 100% | 100% |
+
+These numbers confirm that the Phase 1 threshold rules classify the supplied numeric dataset correctly. They must not be reported as real-image model accuracy. Real-image accuracy is **not available yet** and is waiting for Stage B validation with Ground Truth images.
+
+### Waiting for Calibration
+
+The following items require real labeled images before values can be considered final:
+
+- YOLO mask confidence, mask size limits, and supported-category behavior
+- Foreground/background segmentation quality
+- OpenCLIP foreground similarity threshold
+- pHash distance threshold
+- Quality-gate thresholds
+- Screenshot, watermark, and AI-artifact detector thresholds
+- Rotation, mirror, and crop behavior
+
+Calibration workflow: run localhost/Docker performance first, then use the Calibration set, validate on the Validation set, lock configuration, and run the Final Testing set once. See [PERFORMANCE_AND_CALIBRATION_GUIDE.md](PERFORMANCE_AND_CALIBRATION_GUIDE.md).
+
+### Possible Next Concepts
+
+- Add `detected_category` as an optional output without making category classification a hard requirement
+- Expose `segmentation_status` and `segmentation_reason` in the API response for QA observability
+- Add a dedicated category classifier or zero-shot classifier if product category filtering becomes a business requirement
+- Add rotation/flip-invariant matching if real-image results show a material failure rate
+- Replace heuristic detectors with specialized models only when false-positive data justifies the cost
+- Add a performance worker/queue when concurrency testing shows the synchronous inference path is saturated
+
 ## Requirements
 
 - Windows
@@ -345,3 +397,53 @@ Screenshot, watermark และ AI-artifact detector ทำงานใน live 
 - ยังไม่มีชุดภาพจริงพร้อม Ground Truth สำหรับวัด pipeline ตั้งแต่ YOLO ถึง decision
 - API ยังใช้ชื่อไฟล์เป็น product identifier ชั่วคราว
 - ยังไม่มี authentication และการเชื่อมต่อกับ `public.ocr`
+
+### สถานะ Prototype และเปอร์เซ็นต์ความคืบหน้า
+
+ถ้านับเฉพาะ **model prototype** ตอนนี้ทำได้ประมาณ **75%**
+
+ตัวเลขนี้หมายถึง flow หลักถูก implement แล้ว ไม่ได้หมายความว่าโมเดลมีความแม่นยำ 75%
+
+| ความสามารถ | สถานะ | รายละเอียด |
+|---|---|---|
+| Quality gate | พร้อมใช้ | คัดภาพเบลอ มืด contrast ต่ำ และความละเอียดต่ำเป็น `REVIEW` |
+| YOLOv8n-Seg | พร้อมใช้ระดับ MVP | เลือก mask สินค้าที่เหมาะสม ทำความสะอาด mask และคืน `REVIEW` เมื่อไม่มั่นใจ |
+| OpenCLIP embedding | พร้อมใช้ระดับ MVP | สร้าง vector ของ foreground/background |
+| pHash matching | พร้อมใช้ระดับ MVP | ตรวจความเหมือนของภาพแบบ exact/near |
+| Decision scoring | พร้อมใช้ระดับ MVP | เชื่อม `DUPLICATE`, `REVIEW`, `UNIQUE`, `INVALID_DATA` แล้ว |
+| Screenshot/watermark/AI artifact | พื้นฐาน | เป็น heuristic และยังต้อง calibrate ด้วยภาพจริง |
+| Validation ด้วยภาพจริง | รอทำ | ยังไม่มีผลจาก Ground Truth dataset |
+| Production integration | รอทำ | identity, auth และ persistence ยังไม่ finalized |
+
+### ความแม่นยำที่มีตอนนี้
+
+evaluation report ปัจจุบันวัดเฉพาะ **decision logic จาก numeric signals ที่คำนวณไว้แล้ว** ไม่ได้วัด YOLO หรือ OpenCLIP จากภาพจริง:
+
+| ชุดข้อมูล | จำนวน records | Accuracy | Macro F1 |
+|---|---:|---:|---:|
+| Training | 20,000 | 100% | 100% |
+| Validation | 2,000 | 100% | 100% |
+| Testing | 2,000 | 100% | 100% |
+
+ตัวเลขนี้ยืนยันว่า threshold rules ของ Phase 1 จัดกลุ่ม numeric dataset ที่มีอยู่ได้ถูกต้อง แต่ห้ามตีความเป็นความแม่นยำของโมเดลกับภาพจริง เพราะ real-image accuracy ยังไม่มีผลทดสอบและกำลังรอ Stage B validation พร้อม Ground Truth
+
+### ส่วนที่รอ Calibration
+
+- YOLO mask confidence, ขนาด mask และ supported-category behavior
+- คุณภาพการแยก foreground/background
+- foreground similarity threshold ของ OpenCLIP
+- pHash distance threshold
+- quality-gate thresholds
+- screenshot, watermark และ AI-artifact detector thresholds
+- พฤติกรรมภาพหมุน กลับด้าน และ crop
+
+ลำดับคือรัน performance บน localhost/Docker ก่อน จากนั้น calibrate ด้วย Calibration set, ตรวจซ้ำด้วย Validation set, lock config แล้วรัน Final Testing เพียงครั้งเดียว รายละเอียดอยู่ใน [PERFORMANCE_AND_CALIBRATION_GUIDE.md](PERFORMANCE_AND_CALIBRATION_GUIDE.md)
+
+### แนวคิดที่อาจทำต่อ
+
+- เพิ่ม `detected_category` เป็น output แบบ optional โดยไม่บังคับให้ category classification เป็นเงื่อนไขหลัก
+- เปิด `segmentation_status` และ `segmentation_reason` ใน API response เพื่อให้ QA ตรวจสอบได้
+- เพิ่ม category classifier หรือ zero-shot classifier หาก business ต้องการกรอง category จริง
+- เพิ่ม rotation/flip-invariant matching หากผลภาพจริงพบปัญหามากพอ
+- เปลี่ยน heuristic detector เป็น specialized model เมื่อมีข้อมูล false positive รองรับ
+- เพิ่ม worker/queue หาก performance test พบว่า inference แบบ synchronous รองรับ concurrency ไม่พอ
