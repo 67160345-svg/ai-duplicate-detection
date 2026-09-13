@@ -60,11 +60,17 @@ CREATE TABLE duplicate_analysis_results (
     uploaded_product_id     TEXT,
     uploaded_listing_id     TEXT,
     uploaded_image_id       TEXT,
+    seller_id               TEXT,
+    listing_id              TEXT,
+    category                TEXT,
     matched_reference_id    UUID REFERENCES product_reference_images(id),
 
     decision                TEXT NOT NULL CHECK (
         decision IN ('UNIQUE', 'REVIEW', 'DUPLICATE', 'SPAM', 'INVALID_DATA')
     ),
+    business_rule           TEXT,
+    seller_match            BOOLEAN,
+    spam_reason             TEXT,
     is_repetition           BOOLEAN NOT NULL DEFAULT false,
     repetition_rate         REAL NOT NULL DEFAULT 0.0,
     foreground_similarity   REAL NOT NULL DEFAULT 0.0,
@@ -87,6 +93,9 @@ CREATE INDEX duplicate_analysis_results_decision_idx
     ON duplicate_analysis_results (decision);
 
 -- Supabase RPC used by PgVectorReferenceStore.
+-- Drop is required before changing the RETURNS TABLE shape on an existing database.
+DROP FUNCTION IF EXISTS match_product_images(VECTOR, INTEGER, TEXT, TEXT);
+
 CREATE OR REPLACE FUNCTION match_product_images(
     query_vector VECTOR(512),
     match_count INTEGER DEFAULT 20,
@@ -99,6 +108,7 @@ RETURNS TABLE (
     listing_id TEXT,
     image_id TEXT,
     image_url TEXT,
+    seller_id TEXT,
     phash TEXT,
     fg_vector VECTOR(512),
     bg_vector VECTOR(512)
@@ -112,6 +122,7 @@ AS $$
         pri.listing_id,
         pri.image_id,
         pri.image_url,
+        pri.seller_id,
         pri.phash,
         pri.fg_vector,
         pri.bg_vector

@@ -1,7 +1,7 @@
 import logging
 import os
 from typing import Dict, Optional
-from fastapi import FastAPI, File, UploadFile, Header, HTTPException
+from fastapi import FastAPI, File, Form, UploadFile, Header, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from fastapi.openapi.utils import get_openapi
 from pydantic import BaseModel
@@ -12,6 +12,7 @@ from modules.feature_extractor import extract_all_features
 from modules.preprocessor import calculate_quality_scores, check_image_quality, load_image_from_bytes
 from modules.scoring_engine import (
     DEFAULT_SIMILARITY_THRESHOLDS,
+    evaluate_spam_decision,
     evaluate_baseline_decision,
 )
 from modules.detectors import run_detectors
@@ -119,6 +120,10 @@ class GatewayDetectionResponse(BaseModel):
 )
 async def detect_duplicate_product_gateway(
     image: UploadFile = File(...),
+    product_id: Optional[str] = Form(None),
+    seller_id: Optional[str] = Form(None),
+    listing_id: Optional[str] = Form(None),
+    category: Optional[str] = Form(None),
     api_caller: str = Header(None, alias="api-caller"),
     api_key: str = Header(None, alias="api-key"),
 ):
@@ -225,7 +230,21 @@ async def detect_duplicate_product_gateway(
             )
         )
 
-        is_rep = decision == "DUPLICATE"
+        spam_context = {
+            "product_id": product_id,
+            "seller_id": seller_id,
+            "listing_id": listing_id,
+            "category": category,
+        }
+        decision, spam_reason = evaluate_spam_decision(
+            context=spam_context,
+            base_decision=decision,
+            matched_record=matched,
+        )
+        if spam_reason:
+            reason = spam_reason
+
+        is_rep = decision in {"DUPLICATE", "SPAM"}
         rep_rate = fg_sim if decision in {"DUPLICATE", "REVIEW"} else 0.0
 
         image_reference = image.filename
@@ -241,19 +260,31 @@ async def detect_duplicate_product_gateway(
         # กลายเป็น reference สำหรับ request ถัดไป
         if decision != "INVALID_DATA":
             current_record = {
-                "product_id": image.filename,
+                "product_id": product_id or image.filename,
                 "image_url": image_reference,
                 "phash": new_phash,
                 "fg_vector": new_fg_vec,
                 "bg_vector": new_bg_vec,
             }
+            if seller_id:
+                current_record["seller_id"] = seller_id
+            if listing_id:
+                current_record["listing_id"] = listing_id
+            if category:
+                current_record["category"] = category
             await run_in_threadpool(reference_store.add, current_record)
 
         if hasattr(reference_store, "record_analysis"):
             await run_in_threadpool(
                 reference_store.record_analysis,
                 {
-                    "uploaded_product_id": image.filename,
+                    "uploaded_product_id": product_id or image.filename,
+                    "seller_id": seller_id,
+                    "listing_id": listing_id,
+                    "category": category,
+                    "business_rule": "BR010" if decision == "SPAM" else None,
+                    "seller_match": decision == "SPAM",
+                    "spam_reason": spam_reason,
                     "matched_reference_id": matched.get("id") if matched else None,
                     "decision": decision,
                     "is_repetition": is_rep,
@@ -282,7 +313,7 @@ async def detect_duplicate_product_gateway(
                     if matched
                     else None,
                 )
-                if decision in {"DUPLICATE", "REVIEW"} and matched
+                if decision in {"DUPLICATE", "REVIEW", "SPAM"} and matched
                 else None
             ),
             analysis=AnalysisDetail(

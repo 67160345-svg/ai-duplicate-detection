@@ -1,0 +1,458 @@
+{
+  "info": {
+    "_postman_id": "14ae9e24-ad22-40a6-918a-1563f4ac4df8",
+    "name": "TTT - AI - GATEWAY",
+    "description": "Mock endpoints ของ src/routes/gateway.js ทุก request จะแนบ api-caller, api-key, Referer ไปใน header และตรวจสิทธิ์ผ่าน resolveCallerService (รวมเช็คว่า Referer ตรงกับ acs_url_call ที่ลงทะเบียนไว้ เหมือนตอนสแกน) ก่อนบันทึก transaction ลง public.ocr",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "22909021"
+  },
+  "item": [
+    {
+      "name": "1. Detect Duplicate Product (ตรวจจับสินค้าซ้ำ)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "api-caller",
+            "value": "{{ocr_caller_id}}",
+            "type": "text"
+          },
+          {
+            "key": "api-key",
+            "value": "e57a9553-1761-4778-8112-28d953fd1126",
+            "type": "text"
+          },
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "image",
+              "type": "file",
+              "description": "แนบรูปสินค้าที่จะเช็คว่าซ้ำหรือไม่",
+              "src": "/C:/Users/Acer/Desktop/fileOcr/imp-509114913.pdf"
+            },
+            {
+              "key": "product_id",
+              "value": "product-001",
+              "type": "text",
+              "description": "ต้องส่งครบพร้อม seller_id, listing_id และ category จึงจะเปิดใช้ SPAM logic"
+            },
+            {
+              "key": "seller_id",
+              "value": "seller-001",
+              "type": "text"
+            },
+            {
+              "key": "listing_id",
+              "value": "listing-001",
+              "type": "text"
+            },
+            {
+              "key": "category",
+              "value": "camera",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/gateway/detectDuplicateProduct",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "gateway",
+            "detectDuplicateProduct"
+          ]
+        },
+        "description": "รับ image และ optional product context; ถ้าส่ง product_id, seller_id, listing_id และ category ครบ ระบบจึงตรวจ SPAM จาก duplicate ของ seller เดิมได้"
+      },
+      "response": []
+    },
+    {
+      "name": "2. Recommend Product #1 (สินค้าแนะนำ)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "api-caller",
+            "value": "{{ocr_caller_id}}",
+            "type": "text"
+          },
+          {
+            "key": "api-key",
+            "value": "838e0616-a5e2-408d-845c-79388d839676",
+            "type": "text"
+          },
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"history\": [\n    {\n      \"product_id\": \"cb125545-2124-4512-abb6-fabbee71f083\",\n      \"viewed_at\": \"2026-08-10T09:15:00+07:00\"\n    },\n    {\n      \"product_id\": \"86ea7795-4f77-4b84-915e-44dca6bc1a10\",\n      \"viewed_at\": \"2026-08-12T14:40:00+07:00\"\n    }\n  ],\n  \"activity\": [\n    { \"type\": \"view\", \"product_id\": \"cb125545-2124-4512-abb6-fabbee71f083\" },\n    { \"type\": \"add_to_cart\", \"product_id\": \"86ea7795-4f77-4b84-915e-44dca6bc1a10\" },\n    { \"type\": \"search\", \"keyword\": \"นาฬิกาข้อมือ\" }\n  ],\n  \"product\": [\n    {\n      \"product_id\": \"cb125545-2124-4512-abb6-fabbee71f083\",\n      \"product_name\": \"Playnova ตุ๊กตาผ้า รุ่น 001\",\n      \"product_description\": \"ตุ๊กตาผ้า นำเข้าจากต่างประเทศ ผ่านการตรวจสอบคุณภาพก่อนวางจำหน่าย\",\n      \"product_deteriorate\": 50,\n      \"product_image\": \"products/001-ตุ๊กตาผ้า.jpg\",\n      \"product_have_boxset\": false\n    },\n    {\n      \"product_id\": \"86ea7795-4f77-4b84-915e-44dca6bc1a10\",\n      \"product_name\": \"Kestrel นาฬิกาข้อมือ รุ่น 002\",\n      \"product_description\": \"นาฬิกาข้อมือ ของแท้ 100% มีใบรับประกันสินค้าแนบมาด้วย\",\n      \"product_deteriorate\": 41,\n      \"product_image\": \"products/002-นาฬิกาข้อมือ.jpg\",\n      \"product_have_boxset\": false\n    }\n  ]\n\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/gateway/recommendProduct",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "gateway",
+            "recommendProduct"
+          ]
+        },
+        "description": "รับ history/activity/product -> สุ่มหยิบสินค้า 10 ตัวจาก src/json/product.json คืนเป็น product_recommend พร้อม insert แถวใหม่ลง public.ocr"
+      },
+      "response": []
+    },
+    {
+      "name": "3. Similar Product #2 (สินค้าใกล้เคียง)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "api-caller",
+            "value": "{{ocr_caller_id}}",
+            "type": "text"
+          },
+          {
+            "key": "api-key",
+            "value": "02b1964b-1d18-429f-9d26-744d8568fa1e",
+            "type": "text"
+          },
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"this_product\": {\n    \"product_id\": \"ba78b820-ac47-4ca7-81a0-a86a979fd01c\",\n    \"product_name\": \"Ergotrend ชั้นวางหนังสือ รุ่น 003\",\n    \"product_description\": \"ชั้นวางหนังสือ ของแท้ 100% มีใบรับประกันสินค้าแนบมาด้วย\",\n    \"product_deteriorate\": 85,\n    \"product_image\": \"products/003-ชั้นวางหนังสือ.jpg\",\n    \"product_have_boxset\": true\n  },\n  \"product\": [\n    {\n      \"product_id\": \"cb125545-2124-4512-abb6-fabbee71f083\",\n      \"product_name\": \"Playnova ตุ๊กตาผ้า รุ่น 001\",\n      \"product_description\": \"ตุ๊กตาผ้า นำเข้าจากต่างประเทศ ผ่านการตรวจสอบคุณภาพก่อนวางจำหน่าย\",\n      \"product_deteriorate\": 50,\n      \"product_image\": \"products/001-ตุ๊กตาผ้า.jpg\",\n      \"product_have_boxset\": false\n    },\n    {\n      \"product_id\": \"86ea7795-4f77-4b84-915e-44dca6bc1a10\",\n      \"product_name\": \"Kestrel นาฬิกาข้อมือ รุ่น 002\",\n      \"product_description\": \"นาฬิกาข้อมือ ของแท้ 100% มีใบรับประกันสินค้าแนบมาด้วย\",\n      \"product_deteriorate\": 41,\n      \"product_image\": \"products/002-นาฬิกาข้อมือ.jpg\",\n      \"product_have_boxset\": false\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/gateway/similarProduct",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "gateway",
+            "similarProduct"
+          ]
+        },
+        "description": "รับ this_product/product -> สุ่มหยิบสินค้าใกล้เคียง 10 ตัวจาก src/json/product.json คืนเป็น product_recommend พร้อม insert แถวใหม่ลง public.ocr"
+      },
+      "response": []
+    },
+    {
+      "name": "4. Compare Product #3 (เปรียบเทียบสินค้า)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "api-caller",
+            "value": "{{ocr_caller_id}}",
+            "type": "text"
+          },
+          {
+            "key": "api-key",
+            "value": "bcdc59fc-0b17-4b01-95ee-dec002cfc76a",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"this_product\": {\n    \"product_id\": \"ba78b820-ac47-4ca7-81a0-a86a979fd01c\",\n    \"product_name\": \"Ergotrend ชั้นวางหนังสือ รุ่น 003\",\n    \"product_description\": \"ชั้นวางหนังสือ ของแท้ 100% มีใบรับประกันสินค้าแนบมาด้วย\",\n    \"product_deteriorate\": 85,\n    \"product_image\": \"products/003-ชั้นวางหนังสือ.jpg\",\n    \"product_have_boxset\": true\n  },\n  \"product\": [\n    {\n      \"product_id\": \"cb125545-2124-4512-abb6-fabbee71f083\",\n      \"product_name\": \"Playnova ตุ๊กตาผ้า รุ่น 001\",\n      \"product_description\": \"ตุ๊กตาผ้า นำเข้าจากต่างประเทศ ผ่านการตรวจสอบคุณภาพก่อนวางจำหน่าย\",\n      \"product_deteriorate\": 50,\n      \"product_image\": \"products/001-ตุ๊กตาผ้า.jpg\",\n      \"product_have_boxset\": false\n    },\n    {\n      \"product_id\": \"86ea7795-4f77-4b84-915e-44dca6bc1a10\",\n      \"product_name\": \"Kestrel นาฬิกาข้อมือ รุ่น 002\",\n      \"product_description\": \"นาฬิกาข้อมือ ของแท้ 100% มีใบรับประกันสินค้าแนบมาด้วย\",\n      \"product_deteriorate\": 41,\n      \"product_image\": \"products/002-นาฬิกาข้อมือ.jpg\",\n      \"product_have_boxset\": false\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/gateway/compareProduct",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "gateway",
+            "compareProduct"
+          ]
+        },
+        "description": "รับ this_product/product -> สุ่มหยิบสินค้าไว้เปรียบเทียบ 3 ตัวจาก src/json/product.json คืนเป็น product_compare พร้อม insert แถวใหม่ลง public.ocr"
+      },
+      "response": []
+    },
+    {
+      "name": "5. Evaluate Product Price (ประเมินราคาสินค้า)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "api-caller",
+            "value": "{{ocr_caller_id}}",
+            "type": "text"
+          },
+          {
+            "key": "api-key",
+            "value": "dd633f24-02cf-45bf-8715-151dde7aa9a0",
+            "type": "text"
+          },
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "product_name",
+              "value": "Ergotrend ชั้นวางหนังสือ รุ่น 003",
+              "type": "text"
+            },
+            {
+              "key": "product_description",
+              "value": "ชั้นวางหนังสือ ของแท้ 100% มีใบรับประกันสินค้าแนบมาด้วย",
+              "type": "text"
+            },
+            {
+              "key": "product_deteriorate",
+              "value": "85",
+              "type": "text"
+            },
+            {
+              "key": "product_image",
+              "type": "file",
+              "description": "แนบรูปสินค้าที่จะประเมินราคา",
+              "value": null
+            },
+            {
+              "key": "product_have_boxset",
+              "value": "true",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/gateway/evaluateProductPrice",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "gateway",
+            "evaluateProductPrice"
+          ]
+        },
+        "description": "รับข้อมูลสินค้า (+รูป) -> สุ่มหยิบ 1 รายการจาก src/json/priceEvaluation.json คืน product_price / product_price_range{min,max} / price_reason พร้อม insert แถวใหม่ลง public.ocr"
+      },
+      "response": []
+    },
+    {
+      "name": "6. Product Description (คำอธิบายสินค้า)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "api-caller",
+            "value": "{{api_caller}}",
+            "type": "text"
+          },
+          {
+            "key": "api-key",
+            "value": "d33703fd-0616-4303-b3d4-3aa6106311fe",
+            "type": "text"
+          },
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "product_name",
+              "value": "กระเป๋าหนัง",
+              "type": "text"
+            },
+            {
+              "key": "product_image",
+              "type": "file",
+              "description": "แนบรูปสินค้า",
+              "value": null
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/gateway/ProductDescription",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "gateway",
+            "ProductDescription"
+          ]
+        },
+        "description": "ตรวจสิทธิ์จาก header สุ่มสินค้า 1 รายการจาก src/json/product.json แล้วคืน product_description พร้อมบันทึก transaction ลง public.ocr โดย ocr_url มาจาก X-Forwarded-Host/Host ของ backend และไม่เรียก OCR Engine"
+      },
+      "response": []
+    },
+    {
+      "name": "7. Abnormal Product (ตรวจหมวดสินค้าผิดปกติ)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "api-caller",
+            "value": "{{api_caller}}",
+            "type": "text"
+          },
+          {
+            "key": "api-key",
+            "value": "22a33a4e-9cf6-483a-84dc-2d9c456dcd18",
+            "type": "text"
+          },
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"product_detail\": {\n    \"product_no\": \"P-001\",\n    \"product_name\": \"กระเป๋าหนัง\",\n    \"product_description\": \"กระเป๋าหนังสีดำ\",\n    \"product_image\": \"https://example.com/product.jpg\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/gateway/AbnormalProduct",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "gateway",
+            "AbnormalProduct"
+          ]
+        },
+        "description": "ตรวจสิทธิ์จาก header แล้วสุ่มหมวดสินค้าผิดปกติจาก src/json/abnormalCategory.json พร้อมสุ่ม accurately และ danger_level จาก low/medium/height จากนั้นบันทึก transaction ลง public.ocr"
+      },
+      "response": []
+    },
+    {
+      "name": "8. Chat Bot (สุ่มข้อความตอบกลับ)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "api-caller",
+            "value": "{{api_caller}}",
+            "type": "text"
+          },
+          {
+            "key": "api-key",
+            "value": "e4d1c850-3316-4e05-bf5b-238a3c28f3bb",
+            "type": "text"
+          },
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"buyer\": {\n    \"buyer_id\": \"B-001\",\n    \"buyer_name\": \"ผู้ซื้อทดสอบ\"\n  },\n  \"seller\": {\n    \"seller_id\": \"S-001\",\n    \"seller_name\": \"ผู้ขายทดสอบ\"\n  },\n  \"role\": \"buyer\",\n  \"text_chat\": [\n    \"สินค้ายังอยู่ไหมครับ\",\n    \"สินค้ายังอยู่ครับ สามารถสั่งซื้อได้เลย\"\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/gateway/ChatBot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "gateway",
+            "ChatBot"
+          ]
+        },
+        "description": "ตรวจสิทธิ์จาก header แล้วสุ่มข้อความ 1 รายการจาก src/json/chatMessage.json จากนั้นบันทึก transaction ลง public.ocr"
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://tttspaceship.com/ttt-ocr-service"
+    },
+    {
+      "key": "ocr_caller_id",
+      "value": "8ec36e8d-bc8e-4405-9de0-ab91dc49e052",
+      "description": "ac_id ของ public.api_caller — ใช้ตัวเดียวกันทุก request ผ่าน header api-caller (ต้องตรงกับ acs_ac_id ที่จับคู่กับ api-key ของแต่ละ request ใน public.api_caller_service)"
+    },
+    {
+      "key": "api_caller",
+      "value": "8ec36e8d-bc8e-4405-9de0-ab91dc49e052",
+      "description": "ac_id สำหรับ Product Description, Abnormal Product และ Chat Bot"
+    },
+    {
+      "value": "",
+      "disabled": true
+    }
+  ]
+}

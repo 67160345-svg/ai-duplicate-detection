@@ -9,6 +9,8 @@ DECISION_UNIQUE = "UNIQUE"
 DECISION_INVALID_DATA = "INVALID_DATA"
 DECISION_SPAM = "SPAM"
 
+SPAM_CONTEXT_FIELDS = ("product_id", "seller_id", "listing_id", "category")
+
 DEFAULT_SIMILARITY_THRESHOLDS = {
     "exact_duplicate": 0.99,
     "near_duplicate": 0.95,
@@ -63,6 +65,38 @@ def _has_valid_features(
 
 def _is_true(value: object) -> bool:
     return str(value).strip().lower() in {"true", "yes", "1"}
+
+
+def has_complete_spam_context(context: Dict[str, object]) -> bool:
+    """Return whether the live request has all server-side spam context."""
+    return all(str(context.get(field, "")).strip() for field in SPAM_CONTEXT_FIELDS)
+
+
+def evaluate_spam_decision(
+    context: Dict[str, object],
+    base_decision: str,
+    matched_record: Optional[Dict],
+) -> Tuple[str, Optional[str]]:
+    """Apply BR010 only when complete context proves a same-seller duplicate.
+
+    Client input never supplies Business_Rule or Seller_Match. Seller matching
+    is derived from the authenticated request context and stored reference.
+    """
+    if not has_complete_spam_context(context):
+        return base_decision, None
+    if base_decision != DECISION_DUPLICATE or not matched_record:
+        return base_decision, None
+
+    seller_match = str(matched_record.get("seller_id", "")).strip() == str(
+        context["seller_id"]
+    ).strip()
+    if not seller_match:
+        return base_decision, None
+
+    return (
+        DECISION_SPAM,
+        "BR010: ตรวจพบภาพซ้ำของ seller เดิมจาก context ที่ส่งมาครบถ้วน",
+    )
 
 
 def classify_dataset_record(

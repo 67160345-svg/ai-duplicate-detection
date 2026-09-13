@@ -2,7 +2,12 @@ import unittest
 import numpy as np
 
 from modules.preprocessor import check_image_quality
-from modules.scoring_engine import evaluate_baseline_decision
+from modules.scoring_engine import (
+    DECISION_DUPLICATE,
+    DECISION_SPAM,
+    evaluate_baseline_decision,
+    evaluate_spam_decision,
+)
 
 
 class QualityGateTests(unittest.TestCase):
@@ -63,6 +68,29 @@ class QualityGateTests(unittest.TestCase):
             review_threshold=0.70,
         )
         self.assertEqual(decision, "DUPLICATE")
+
+    def test_spam_requires_complete_context(self):
+        matched = {"product_id": "reference-1", "seller_id": "seller-1"}
+        incomplete_context = {"product_id": "product-1", "seller_id": "seller-1"}
+        decision, reason = evaluate_spam_decision(
+            incomplete_context, DECISION_DUPLICATE, matched
+        )
+        self.assertEqual(decision, DECISION_DUPLICATE)
+        self.assertIsNone(reason)
+
+    def test_complete_same_seller_context_returns_spam(self):
+        context = {
+            "product_id": "product-1",
+            "seller_id": "seller-1",
+            "listing_id": "listing-1",
+            "category": "camera",
+        }
+        matched = {"product_id": "reference-1", "seller_id": "seller-1"}
+        decision, reason = evaluate_spam_decision(
+            context, DECISION_DUPLICATE, matched
+        )
+        self.assertEqual(decision, DECISION_SPAM)
+        self.assertIn("BR010", reason)
 
 
 if __name__ == "__main__":

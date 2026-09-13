@@ -9,9 +9,9 @@ Uploaded image
     -> FastAPI multipart upload
     -> YOLOv8-Seg foreground/background segmentation
     -> OpenCLIP embeddings + pHash + quality scores
-    -> Supabase pgvector candidate search
+  -> reference-store candidate search (memory by default, Supabase pgvector when configured)
     -> Scoring decision
-    -> Supabase Storage and analysis history
+  -> optional Supabase Storage and analysis history
 ```
 
 Supabase is used as the database and file storage only. The AI models run in the FastAPI process.
@@ -26,6 +26,11 @@ The scoring layer supports:
 - `SPAM`
 - `INVALID_DATA`
 
+The live image API currently returns `UNIQUE`, `REVIEW`, `DUPLICATE`, or
+`INVALID_DATA`. `SPAM` is implemented for the precomputed-dataset evaluator
+and is allowed by the Supabase schema, but the live image scoring path does not
+currently produce `SPAM`.
+
 The current implementation is a conservative prototype. It is not yet calibrated against a real labeled image dataset.
 
 The model scope is intentionally limited to phones/tablets, apparel/fashion, cameras, basic tools,
@@ -33,24 +38,23 @@ beauty/health products, and computer/IT accessories. Unsupported or uncertain de
 
 ## Current Prototype Status
 
-Estimated completion for the **model prototype**: **about 75%**.
-
-This percentage means the main inference and decision flow is implemented. It does not mean 75% model accuracy.
+The main inference and decision flow is implemented, but this repository does
+not have a defensible percentage-complete or real-image accuracy measurement.
 
 | Capability | Status | Notes |
 |---|---|---|
 | Image quality gate | Ready | Rejects clearly blurry, dark, low-contrast, or low-resolution images as `REVIEW` |
-| YOLOv8n-Seg foreground/background | Ready for MVP | Selects supported product-like masks, cleans masks, and falls back to `REVIEW` when uncertain |
+| YOLOv8n-Seg foreground/background | Implemented with fallback | Selects supported product-like masks and cleans masks; when segmentation is unavailable, the current extractor falls back to the full image instead of forcing `REVIEW` |
 | OpenCLIP embedding | Ready for MVP | Generates normalized foreground/background vectors |
 | pHash matching | Ready for MVP | Supports exact/near visual similarity checks |
-| Decision scoring | Ready for MVP | `DUPLICATE`, `REVIEW`, `UNIQUE`, `INVALID_DATA` paths are wired |
+| Decision scoring | Implemented with context gate | Live API returns `DUPLICATE`, `REVIEW`, `UNIQUE`, `INVALID_DATA`, or `SPAM`; `SPAM` requires `product_id`, `seller_id`, `listing_id`, `category`, and a duplicate reference from the same seller |
 | Screenshot/watermark/AI-artifact gates | Basic | Conservative heuristic detectors; require real-image calibration |
 | Real-image model validation | Pending | No labeled image results yet |
-| Production identity/auth/persistence | Pending | Requires integration contracts and production infrastructure |
+| Production identity/auth/persistence | Partial | Supabase reference/storage/history integration exists, but authentication, caller-provided product identity, and production validation are pending |
 
 ### Accuracy Currently Available
 
-The current evaluation report measures **decision logic from precomputed numeric signals**, not YOLO/OpenCLIP inference from real images:
+The repository dataset `dataset-ai-ตรวจสอบรูปภาพซ้ำ.xlsx` was checked with the evaluator's Phase 1 rules. It measures **decision logic from precomputed numeric signals**, not YOLO/OpenCLIP inference from real images:
 
 | Split | Records | Accuracy | Macro F1 |
 |---|---:|---:|---:|
@@ -58,13 +62,13 @@ The current evaluation report measures **decision logic from precomputed numeric
 | Validation | 2,000 | 100% | 100% |
 | Testing | 2,000 | 100% | 100% |
 
-These numbers confirm that the Phase 1 threshold rules classify the supplied numeric dataset correctly. They must not be reported as real-image model accuracy. Real-image accuracy is **not available yet** and is waiting for Stage B validation with Ground Truth images.
+These numbers confirm that the Phase 1 threshold rules classify the supplied numeric dataset correctly. They must not be reported as real-image model accuracy. Real-image accuracy is **not available yet** and is waiting for Stage B validation with Ground Truth images. No generated evaluation report is committed under `evaluation/`; generate one with the command below when needed.
 
 ### Waiting for Calibration
 
 The following items require real labeled images before values can be considered final:
 
-- YOLO mask confidence, mask size limits, and supported-category behavior
+- YOLO mask confidence, mask size limits, supported-category behavior, and the current segmentation fallback behavior
 - Foreground/background segmentation quality
 - OpenCLIP foreground similarity threshold
 - pHash distance threshold
@@ -86,9 +90,10 @@ Calibration workflow: run localhost/Docker performance first, then use the Calib
 ## Requirements
 
 - Windows
-- Python 3.14 or compatible Python version
+- Python 3.14 is the verified local runtime; the Dockerfile uses Python 3.11
 - Supabase project with `vector` and `pgcrypto` extensions
 - YOLO model file at `modules/yolov8n-seg.pt`
+- Tesseract OCR executable on `PATH` (optional; required for OCR-based screenshot/watermark signals)
 
 ## Installation
 
@@ -97,6 +102,8 @@ Use the project virtual environment:
 ```powershell
 .venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
+
+The archive intentionally excludes the local virtual environment, `.env`, Python cache files, and generated evaluation reports. The YOLO model file is included because the API loads it at startup.
 
 ## Supabase Setup
 
@@ -192,7 +199,7 @@ Allowed formats are JPEG, PNG, and WebP. Maximum upload size is 10 MB.
 }
 ```
 
-`image_reference` is a Storage path returned as response metadata. The uploaded file itself is sent through the multipart `image` field.
+With `REFERENCE_STORE=supabase`, `image_reference` is a Storage path returned as response metadata. With the default in-memory store, it is the uploaded filename. The uploaded file itself is sent through the multipart `image` field.
 
 ## Evaluation
 
@@ -225,13 +232,14 @@ select * from duplicate_analysis_results order by created_at desc limit 5;
 
 ## Current Limitations
 
-- `InMemoryReferenceStore` loses data when the process restarts.
+- `InMemoryReferenceStore` is the default, returns all in-memory records rather than applying a real `top_k` nearest-neighbor search, and loses data when the process restarts.
 - YOLOv8n-Seg is COCO-pretrained and may not detect all e-commerce products.
+- A failed or unsupported segmentation currently falls back to embedding the full image; the API does not yet expose `segmentation_status` or force that case to `REVIEW`.
 - Screenshot, watermark, and AI-artifact detectors are connected to the live pipeline as conservative heuristic gates; a flag returns `REVIEW`.
 - Stock image detection is intentionally out of scope because there is no stock reference database.
 - Thresholds are initial prototype values and require validation with real labeled images.
 - The current API still uses the uploaded filename as the temporary product identifier.
-- Authentication and integration with `public.ocr` are not implemented.
+- Authentication and integration with `public.ocr` are not implemented. The `api-caller` and `api-key` headers are accepted but are not validated.
 
 ## ฉบับภาษาไทย
 
@@ -400,24 +408,22 @@ Screenshot, watermark และ AI-artifact detector ทำงานใน live 
 
 ### สถานะ Prototype และเปอร์เซ็นต์ความคืบหน้า
 
-ถ้านับเฉพาะ **model prototype** ตอนนี้ทำได้ประมาณ **75%**
-
-ตัวเลขนี้หมายถึง flow หลักถูก implement แล้ว ไม่ได้หมายความว่าโมเดลมีความแม่นยำ 75%
+โค้ดมี flow หลักของ model prototype แล้ว แต่ยังไม่มีเปอร์เซ็นต์ความคืบหน้าหรือความแม่นยำจากภาพจริงที่ยืนยันได้
 
 | ความสามารถ | สถานะ | รายละเอียด |
 |---|---|---|
 | Quality gate | พร้อมใช้ | คัดภาพเบลอ มืด contrast ต่ำ และความละเอียดต่ำเป็น `REVIEW` |
-| YOLOv8n-Seg | พร้อมใช้ระดับ MVP | เลือก mask สินค้าที่เหมาะสม ทำความสะอาด mask และคืน `REVIEW` เมื่อไม่มั่นใจ |
+| YOLOv8n-Seg | มี implementation พร้อม fallback | เลือก mask สินค้าที่เหมาะสมและทำความสะอาด mask; หาก segmentation ไม่ผ่าน จะใช้ full image ต่อ ไม่ได้คืน `REVIEW` โดยอัตโนมัติ |
 | OpenCLIP embedding | พร้อมใช้ระดับ MVP | สร้าง vector ของ foreground/background |
 | pHash matching | พร้อมใช้ระดับ MVP | ตรวจความเหมือนของภาพแบบ exact/near |
-| Decision scoring | พร้อมใช้ระดับ MVP | เชื่อม `DUPLICATE`, `REVIEW`, `UNIQUE`, `INVALID_DATA` แล้ว |
+| Decision scoring | มี implementation | live API ใช้ `DUPLICATE`, `REVIEW`, `UNIQUE`, `INVALID_DATA`; `SPAM` ใช้ใน evaluator เท่านั้น |
 | Screenshot/watermark/AI artifact | พื้นฐาน | เป็น heuristic และยังต้อง calibrate ด้วยภาพจริง |
 | Validation ด้วยภาพจริง | รอทำ | ยังไม่มีผลจาก Ground Truth dataset |
-| Production integration | รอทำ | identity, auth และ persistence ยังไม่ finalized |
+| Production integration | ทำบางส่วน | มี Supabase reference/storage/history integration แต่ identity, auth และ production validation ยังไม่เสร็จ |
 
 ### ความแม่นยำที่มีตอนนี้
 
-evaluation report ปัจจุบันวัดเฉพาะ **decision logic จาก numeric signals ที่คำนวณไว้แล้ว** ไม่ได้วัด YOLO หรือ OpenCLIP จากภาพจริง:
+จากการรันกับไฟล์ `dataset-ai-ตรวจสอบรูปภาพซ้ำ.xlsx` ใน repository, evaluation วัดเฉพาะ **decision logic จาก numeric signals ที่คำนวณไว้แล้ว** ไม่ได้วัด YOLO หรือ OpenCLIP จากภาพจริง:
 
 | ชุดข้อมูล | จำนวน records | Accuracy | Macro F1 |
 |---|---:|---:|---:|
