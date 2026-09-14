@@ -2,6 +2,10 @@
 
 FastAPI service for detecting duplicate product images using YOLOv8-Seg, OpenCLIP embeddings, and pHash.
 
+The upload endpoint accepts JPEG/JPG, PNG, WebP, GIF, BMP, TIFF/TIF, AVIF, and
+HEIC/HEIF images. HEIC/HEIF/AVIF decoding is provided by `pillow-heif`; the
+service returns HTTP 400 for unsupported or corrupt image data.
+
 ## Architecture
 
 ```text

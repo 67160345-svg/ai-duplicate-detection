@@ -1,5 +1,6 @@
 import logging
 import os
+from pathlib import Path
 from typing import Dict, Optional
 from fastapi import FastAPI, File, Form, UploadFile, Header, HTTPException
 from fastapi.concurrency import run_in_threadpool
@@ -75,7 +76,22 @@ reference_store: ReferenceImageStore = _create_reference_store()
 
 # จำกัดขนาดไฟล์อัปโหลดกันคนส่งไฟล์ใหญ่มาถล่ม (ปรับตามความเหมาะสมของ use case จริง)
 MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
-ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
+ALLOWED_CONTENT_TYPES = {
+    "image/avif",
+    "image/bmp",
+    "image/gif",
+    "image/heic",
+    "image/heif",
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/tiff",
+    "image/webp",
+}
+ALLOWED_IMAGE_EXTENSIONS = {
+    ".avif", ".bmp", ".gif", ".heic", ".heif", ".jpeg", ".jpg",
+    ".png", ".tif", ".tiff", ".webp",
+}
 
 
 # ==========================================
@@ -129,7 +145,11 @@ async def detect_duplicate_product_gateway(
 ):
     try:
         # Step 0: ตรวจสอบไฟล์เบื้องต้นก่อนเข้า pipeline (กัน DoS / ไฟล์ผิดชนิด)
-        if image.content_type not in ALLOWED_CONTENT_TYPES:
+        image_extension = Path(image.filename or "").suffix.lower()
+        if (
+            image.content_type not in ALLOWED_CONTENT_TYPES
+            and image_extension not in ALLOWED_IMAGE_EXTENSIONS
+        ):
             raise HTTPException(
                 status_code=400,
                 detail=(
@@ -152,7 +172,13 @@ async def detect_duplicate_product_gateway(
         # load_image_from_bytes / extract_all_features เป็นงาน CPU-bound
         # แบบ synchronous (YOLO/CLIP inference) — ต้องรันใน threadpool ไม่งั้น
         # จะบล็อก event loop ทำให้ request อื่นค้างหมดระหว่างประมวลผลภาพนี้
-        img_rgb = await run_in_threadpool(load_image_from_bytes, contents)
+        try:
+            img_rgb = await run_in_threadpool(load_image_from_bytes, contents)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail="ไฟล์ไม่ใช่ภาพที่รองรับหรือภาพเสียหาย",
+            ) from exc
 
         quality_scores = await run_in_threadpool(calculate_quality_scores, img_rgb)
         quality_ok, quality_issues = await run_in_threadpool(check_image_quality, img_rgb)
