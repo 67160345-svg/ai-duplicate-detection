@@ -176,6 +176,7 @@ IMG_002,images/large/camera_001.jpg,CAMERA,large,4032,3024,7345678,jpeg
 ทดสอบอย่างน้อย:
 
 - ไฟล์ JPEG/PNG/WebP ที่ถูกต้อง
+- ไฟล์ GIF/BMP/TIFF/AVIF/HEIC/HEIF ที่ถูกต้อง
 - content type ไม่ใช่ image
 - ไฟล์เกิน 10 MB
 - ไฟล์ภาพเสียหรือ decode ไม่ได้

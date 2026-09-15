@@ -91,29 +91,51 @@ def detect_watermark(img_rgb: np.ndarray) -> Tuple[bool, str]:
         if 0.01 * w < ww < 0.45 * w and 0.01 * h < hh < 0.15 * h:
             text_like_regions.append((x, y, ww, hh, area))
 
+    def is_corner(x: int, y: int, ww: int, hh: int) -> bool:
+        corner_width = 0.3 * w
+        corner_height = 0.3 * h
+        return (
+            (x < corner_width and y < corner_height)
+            or (x + ww > w - corner_width and y < corner_height)
+            or (x < corner_width and y + hh > h - corner_height)
+            or (x + ww > w - corner_width and y + hh > h - corner_height)
+        )
+
     coverage_signal = False
     if large_regions:
         x, y, ww, hh, area = max(large_regions, key=lambda item: item[4])
         if ww * hh > 0.08 * h * w:
             coverage_signal = True
 
-    ocr_signal = False
+    corner_ocr_signal = False
     if pytesseract is not None:
         try:
             pil = Image.fromarray(img_rgb)
             data = pytesseract.image_to_data(pil, config="--psm 11", output_type=pytesseract.Output.DICT)
-            trusted_words = [
-                index for index, text in enumerate(data.get("text", []))
-                if text.strip() and float(data["conf"][index]) >= 55
-            ]
-            ocr_signal = bool(trusted_words)
+            trusted_words = []
+            corner_words = []
+            for index, text in enumerate(data.get("text", [])):
+                if not text.strip() or float(data["conf"][index]) < 55:
+                    continue
+                trusted_words.append(index)
+                if is_corner(
+                    int(data["left"][index]),
+                    int(data["top"][index]),
+                    int(data["width"][index]),
+                    int(data["height"][index]),
+                ):
+                    corner_words.append(index)
+            corner_ocr_signal = bool(corner_words)
         except Exception:
             pass
 
-    repeated_text_signal = len(text_like_regions) >= 3
-    if coverage_signal and (ocr_signal or repeated_text_signal):
+    corner_text_regions = [
+        region for region in text_like_regions if is_corner(*region[:4])
+    ]
+    repeated_corner_text_signal = len(corner_text_regions) >= 3
+    if coverage_signal and (corner_ocr_signal or repeated_corner_text_signal):
         return True, "พบ overlay ที่มีพื้นที่ปกคลุมและลักษณะข้อความ/โลโก้"
-    if repeated_text_signal and ocr_signal:
+    if repeated_corner_text_signal and corner_ocr_signal:
         return True, "พบข้อความหรือโลโก้ซ้ำบนพื้นที่ภาพที่เข้าลักษณะ watermark"
 
     return False, "ไม่พบ watermark / logo overlay ที่ชัดเจน"

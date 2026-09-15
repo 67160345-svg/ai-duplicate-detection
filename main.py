@@ -94,6 +94,16 @@ ALLOWED_IMAGE_EXTENSIONS = {
 }
 
 
+def _clean_optional_form_value(value: Optional[str]) -> Optional[str]:
+    """Treat Swagger placeholder values as missing optional request context."""
+    if value is None:
+        return None
+    cleaned = value.strip()
+    if cleaned.lower() in {"", "string", "null", "none"}:
+        return None
+    return cleaned
+
+
 # ==========================================
 # 1. Pydantic Response Contract (SE Specifications)
 # ==========================================
@@ -143,6 +153,11 @@ async def detect_duplicate_product_gateway(
     api_caller: str = Header(None, alias="api-caller"),
     api_key: str = Header(None, alias="api-key"),
 ):
+    product_id = _clean_optional_form_value(product_id)
+    seller_id = _clean_optional_form_value(seller_id)
+    listing_id = _clean_optional_form_value(listing_id)
+    category = _clean_optional_form_value(category)
+
     try:
         # Step 0: ตรวจสอบไฟล์เบื้องต้นก่อนเข้า pipeline (กัน DoS / ไฟล์ผิดชนิด)
         image_extension = Path(image.filename or "").suffix.lower()
@@ -175,6 +190,12 @@ async def detect_duplicate_product_gateway(
         try:
             img_rgb = await run_in_threadpool(load_image_from_bytes, contents)
         except ValueError as exc:
+            logger.exception(
+                "Image decode failed: filename=%r content_type=%r bytes=%d",
+                image.filename,
+                image.content_type,
+                len(contents),
+            )
             raise HTTPException(
                 status_code=400,
                 detail="ไฟล์ไม่ใช่ภาพที่รองรับหรือภาพเสียหาย",

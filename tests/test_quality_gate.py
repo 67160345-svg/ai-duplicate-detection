@@ -1,16 +1,51 @@
 import unittest
+import io
 import numpy as np
+from PIL import Image
 
-from modules.preprocessor import check_image_quality
+from modules.preprocessor import check_image_quality, load_image_from_bytes
 from modules.scoring_engine import (
     DECISION_DUPLICATE,
     DECISION_SPAM,
     evaluate_baseline_decision,
     evaluate_spam_decision,
+    has_complete_spam_context,
 )
 
 
 class QualityGateTests(unittest.TestCase):
+    def test_load_image_from_bytes_supports_pillow_formats(self):
+        source = Image.new("RGB", (12, 8), (20, 40, 60))
+        encoded = io.BytesIO()
+        source.save(encoded, format="TIFF")
+
+        decoded = load_image_from_bytes(encoded.getvalue())
+
+        self.assertEqual(decoded.shape, (8, 12, 3))
+        self.assertEqual(decoded[0, 0].tolist(), [20, 40, 60])
+
+    def test_load_image_from_bytes_supports_jpeg_larger_than_800kb(self):
+        rng = np.random.default_rng(1)
+        pixels = rng.integers(0, 256, size=(1200, 1600, 3), dtype=np.uint8)
+        source = Image.fromarray(pixels, mode="RGB")
+        encoded = io.BytesIO()
+        source.save(encoded, format="JPEG", quality=95)
+
+        self.assertGreater(len(encoded.getvalue()), 800 * 1024)
+        decoded = load_image_from_bytes(encoded.getvalue())
+
+        self.assertEqual(decoded.shape, (1200, 1600, 3))
+
+    def test_load_image_from_bytes_supports_heif(self):
+        source = Image.new("RGB", (12, 8), (20, 40, 60))
+        encoded = io.BytesIO()
+        source.save(encoded, format="HEIF")
+
+        decoded = load_image_from_bytes(encoded.getvalue())
+
+        self.assertEqual(decoded.shape, (8, 12, 3))
+        self.assertLessEqual(max(abs(int(value) - expected) for value, expected in zip(decoded[0, 0], [20, 40, 60])), 2)
+
     def test_blurry_dark_low_resolution_image_is_reviewed(self):
         img = np.zeros((64, 64, 3), dtype=np.uint8)
         ok, issues = check_image_quality(img)
@@ -91,6 +126,15 @@ class QualityGateTests(unittest.TestCase):
         )
         self.assertEqual(decision, DECISION_SPAM)
         self.assertIn("BR010", reason)
+
+    def test_swagger_placeholder_context_is_not_complete(self):
+        context = {
+            "product_id": "string",
+            "seller_id": "string",
+            "listing_id": "string",
+            "category": "string",
+        }
+        self.assertFalse(has_complete_spam_context(context))
 
 
 if __name__ == "__main__":

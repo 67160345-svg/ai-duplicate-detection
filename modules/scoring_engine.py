@@ -69,7 +69,11 @@ def _is_true(value: object) -> bool:
 
 def has_complete_spam_context(context: Dict[str, object]) -> bool:
     """Return whether the live request has all server-side spam context."""
-    return all(str(context.get(field, "")).strip() for field in SPAM_CONTEXT_FIELDS)
+    return all(
+        str(context.get(field, "")).strip().lower()
+        not in {"", "string", "null", "none"}
+        for field in SPAM_CONTEXT_FIELDS
+    )
 
 
 def evaluate_spam_decision(

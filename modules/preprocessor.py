@@ -1,6 +1,20 @@
+import io
+import logging
 from typing import Dict, List, Tuple
 import cv2
 import numpy as np
+from PIL import Image, ImageOps
+
+try:
+    from pillow_heif import register_heif_opener
+except ImportError:  # pragma: no cover - installed in the service environment
+    register_heif_opener = None
+
+if register_heif_opener:
+    register_heif_opener()
+
+
+logger = logging.getLogger(__name__)
 
 
 def calculate_quality_scores(img_rgb: np.ndarray) -> Dict[str, float]:
@@ -74,9 +88,19 @@ def check_image_quality(img_rgb: np.ndarray) -> Tuple[bool, List[str]]:
 
 
 def load_image_from_bytes(image_bytes: bytes) -> np.ndarray:
-    """แปลง Raw File Bytes จาก Form-Data ให้เป็น RGB NumPy Array"""
-    nparr = np.frombuffer(image_bytes, np.uint8)
-    img_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    if img_bgr is None:
-        raise ValueError("Cannot decode image from uploaded file bytes")
-    return cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+    """แปลง bytes ของภาพมาตรฐานหรือ HEIC/HEIF เป็น RGB NumPy Array"""
+    try:
+        with Image.open(io.BytesIO(image_bytes)) as image:
+            try:
+                image = ImageOps.exif_transpose(image)
+            except (OSError, TypeError, ValueError):
+                # A malformed EXIF block should not reject an otherwise decodable image.
+                logger.warning("Ignoring invalid EXIF metadata while decoding image")
+            return np.asarray(image.convert("RGB"), dtype=np.uint8).copy()
+    except (
+        Image.DecompressionBombError,
+        Image.UnidentifiedImageError,
+        OSError,
+        ValueError,
+    ) as exc:
+        raise ValueError("Cannot decode image from uploaded file bytes") from exc
